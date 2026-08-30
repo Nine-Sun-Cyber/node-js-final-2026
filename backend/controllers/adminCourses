@@ -1,0 +1,163 @@
+const { dataSource } = require('../db/data-source');
+const { IsNull } = require('typeorm');
+const appError = require('../utils/appError');
+const { isInteger, isValidString } = require('../utils/validUtils');
+
+const adminCourseController = {
+    async create(req, res, next) {
+        const { skill_id, name, description, start_at, end_at, max_participants, meeting_url } = req.body;
+
+        if (
+            !isValidString(skill_id) ||
+            !isValidString(name) ||
+            !isValidString(description) ||
+            !isValidString(start_at) ||
+            !isValidString(end_at) ||
+            !isInteger(max_participants) || max_participants < 0 ||
+            !isValidString(meeting_url) || !meeting_url.startsWith('https')
+        ) {
+            next(appError(400, '欄位未填寫正確'));
+            return;
+        }
+
+        const courseRepo = dataSource.getRepository('Course');
+
+        const newCourse = await courseRepo.save({
+            user_id: req.user.id,
+            skill_id,
+            name,
+            description,
+            start_at,
+            end_at,
+            max_participants,
+            meeting_url,
+        });
+
+        res.status(201).json({
+            status: 'success',
+            data: {
+                course: newCourse,
+            },
+        });
+    },
+
+    async getAll(req, res, next) {
+        try {
+            const courseRepo = dataSource.getRepository('Course');
+            const bookingRepo = dataSource.getRepository('CourseBooking');
+            const myCourses = await courseRepo.findBy({ user_id: req.user.id });
+            const now = new Date();
+            const data = await Promise.all(
+                myCourses.map(async (course) => {
+                    let status;
+                    
+                    if (now < new Date(course.start_at)) {status = '尚未開始';}
+                    else if (now > new Date(course.end_at)) {status = '已結束';}
+                    else {status = '進行中';}
+                    
+                    const bookings = await bookingRepo.findBy({
+                        course_id: course.id,
+                        cancelled_at: IsNull(),
+                    });
+                    
+                    return {
+                        id: course.id,
+                        name: course.name,
+                        status,
+                        start_at: course.start_at,
+                        end_at: course.end_at,
+                        max_participants: course.max_participants,
+                        meeting_url: course.meeting_url,
+                        participants: bookings.length,
+                    };
+                })
+            );
+            
+            res.status(200).json({ 
+                status: 'success', 
+                data 
+            });
+            
+        } catch (error) {
+            next(appError(500, '伺服器錯誤')); 
+        }
+    },
+
+    async getOne(req, res, next) {
+        const { courseId } = req.params;
+
+        const courseRepo = dataSource.getRepository('Course');
+        const skillRepo = dataSource.getRepository('Skill');
+
+        // owner-scoped：課程 id 要存在，而且 user_id 要等於登入者本人，兩種情況查不到都回同一句訊息
+        const findCourse = await courseRepo.findOneBy({ id: courseId, user_id: req.user.id });
+
+        if (!findCourse) {
+            next(appError(400, '課程不存在'));
+            return;
+        }
+
+        const findSkill = await skillRepo.findOneBy({ id: findCourse.skill_id });
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                id: findCourse.id,
+                name: findCourse.name,
+                description: findCourse.description,
+                start_at: findCourse.start_at,
+                end_at: findCourse.end_at,
+                max_participants: findCourse.max_participants,
+                skill_name: findSkill?.name ?? null,
+                skill_id: findCourse.skill_id,
+                meeting_url: findCourse.meeting_url,
+            },
+        });
+    },
+
+    async update(req, res, next) {
+        const { courseId } = req.params;
+        const { skill_id, name, description, start_at, end_at, max_participants, meeting_url } = req.body;
+        
+        // 1. 驗證欄位
+        if (
+            !isValidString(skill_id) ||
+            !isValidString(name) ||
+            !isValidString(description) ||
+            !isValidString(start_at) ||
+            !isValidString(end_at) ||
+            !isInteger(max_participants) || max_participants < 0 ||
+            !isValidString(meeting_url) || !meeting_url.startsWith('https')
+        ) {
+            next(appError(400, '欄位未填寫正確'));
+            return;
+        }
+        
+        const courseRepo = dataSource.getRepository('Course');
+
+        // 2. 再驗證擁有者（owner-scoped：id + user_id 一起查，查不到就是「不存在或不是本人的」）
+        const findCourse = await courseRepo.findOneBy({ id: courseId, user_id: req.user.id });
+        
+        if (!findCourse) {
+            next(appError(400, '課程不存在'));
+            return;
+        }
+        
+        // 3. 更新
+        await courseRepo.update(
+            { id: findCourse.id },
+            { skill_id, name, description, start_at, end_at, max_participants, meeting_url }
+        );
+        
+        const updatedCourse = await courseRepo.findOneBy({ id: findCourse.id });
+        
+        res.status(200).json({
+            status: 'success',
+            data: {
+                course: updatedCourse,
+            },
+        });
+    },
+};
+
+module.exports = adminCourseController;

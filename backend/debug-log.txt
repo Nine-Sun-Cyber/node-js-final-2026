@@ -1,0 +1,11 @@
+Null value encountered in property 'CourseBooking.cancelled_at' of a where condition. To match with SQL NULL, the IsNull() operator must be used. Set 'invalidWhereValuesBehavior.null' to 'ignore' or 'sql-null' in connection options to skip or handle null values.
+TypeORMError: Null value encountered in property 'CourseBooking.cancelled_at' of a where condition. To match with SQL NULL, the IsNull() operator must be used. Set 'invalidWhereValuesBehavior.null' to 'ignore' or 'sql-null' in connection options to skip or handle null values.
+    at SelectQueryBuilder.buildWhere (C:\Users\USER\Desktop\Project-2026back\node-js-final-2026\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:2621:31)
+    at SelectQueryBuilder.applyFindOptions (C:\Users\USER\Desktop\Project-2026back\node-js-final-2026\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:1913:40)
+    at SelectQueryBuilder.setFindOptions (C:\Users\USER\Desktop\Project-2026back\node-js-final-2026\backend\node_modules\typeorm\query-builder\SelectQueryBuilder.js:71:14)
+    at EntityManager.findBy (C:\Users\USER\Desktop\Project-2026back\node-js-final-2026\backend\node_modules\typeorm\entity-manager\EntityManager.js:670:14)
+    at Repository.findBy (C:\Users\USER\Desktop\Project-2026back\node-js-final-2026\backend\node_modules\typeorm\repository\Repository.js:298:29)
+    at C:\Users\USER\Desktop\Project-2026back\node-js-final-2026\backend\controllers\adminCourses:58:52
+    at Array.map (<anonymous>)
+    at getAll (C:\Users\USER\Desktop\Project-2026back\node-js-final-2026\backend\controllers\adminCourses:51:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
