@@ -53,24 +53,4 @@ app.use((err, req, res, next) =>{
 });
 
 
-
-async function startServer(retries = 3) {
-  try {
-    await dataSource.initialize();
-    app.listen(config.get('web.port'), () => {
-      console.log(`Server is running on ${config.get('web.port')}`);
-    });
-  } catch (err) {
-    console.error('資料庫連線失敗', err.message);
-    if (retries > 0) {
-      console.log(`重試中...剩餘 ${retries} 次`);
-      setTimeout(() => startServer(retries - 1), 2000);
-    } else {
-      process.exit(1);
-    }
-  }
-}
-
-startServer();
-
 module.exports = app;
